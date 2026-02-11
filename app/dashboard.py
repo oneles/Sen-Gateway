@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Form, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from database import get_db, InteractionLog, Config, User
+from .database import get_db, InteractionLog, Config, User
 from pydantic import BaseModel
 import json
 import os
-import security
+from . import security
 from datetime import timedelta
 
 router = APIRouter()

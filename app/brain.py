@@ -1,7 +1,7 @@
 import os
 import litellm
 import json
-from models import ChatCompletionRequest, ChatCompletionResponse, ChatCompletionResponseChoice, Message
+from .models import ChatCompletionRequest, ChatCompletionResponse, ChatCompletionResponseChoice, Message
 from typing import List, Dict, Any, Union, AsyncGenerator
 
 # Ensure LiteLLM maps requests correctly for Gemini

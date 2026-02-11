@@ -9,12 +9,12 @@ import json
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from models import ChatCompletionRequest, ChatCompletionResponse
-from pruner import SkillPruner
-from brain import Brain
-from dashboard import router as dashboard_router
-from database import init_db, get_db, InteractionLog, SessionLocal, Config
-import security
+from .models import ChatCompletionRequest, ChatCompletionResponse
+from .pruner import SkillPruner
+from .brain import Brain
+from .dashboard import router as dashboard_router
+from .database import init_db, get_db, InteractionLog, SessionLocal, Config
+from . import security
 from dotenv import load_dotenv
 
 # Configure logging
