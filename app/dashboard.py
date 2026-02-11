@@ -176,6 +176,13 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             {"val": "anthropic/claude-opus-4-6", "label": "Claude 4.6 Opus"},
             {"val": "anthropic/claude-sonnet-4-5", "label": "Claude 4.5 Sonnet (Best Coding)"},
             {"val": "anthropic/claude-haiku-4-5", "label": "Claude 4.5 Haiku"}
+        ],
+        "bedrock": [
+            {"val": "bedrock/anthropic.claude-v4-6-opus-20260210-v1:0", "label": "Bedrock Claude 4.6 Opus"},
+            {"val": "bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0", "label": "Bedrock Claude 3.5 Sonnet"},
+            {"val": "bedrock/deepseek.deepseek-v3-2-202602-v1:0", "label": "Bedrock DeepSeek V3.2 (Coding)"},
+            {"val": "bedrock/qwen.qwen3-coder-next-202602-v1:0", "label": "Bedrock Qwen3 Coder Next"},
+            {"val": "bedrock/minimax.minimax-m2-1-202602-v1:0", "label": "Bedrock MiniMax M2.1"}
         ]
     };
 
@@ -495,7 +502,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Model Provider</label>
                         <select id="model-provider" class="w-full p-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-blue-500" onchange="updateModelOptions()">
-                            <option value="gemini">Google Gemini</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option>
+                            <option value="gemini">Google Gemini</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="bedrock">AWS Bedrock</option>
                         </select>
                     </div>
                     <div class="space-y-2">

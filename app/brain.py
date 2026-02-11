@@ -81,10 +81,24 @@ class Brain:
         # Explicitly pass API key if we have it
         effective_key = api_key or self.api_key
         if effective_key:
-            kwargs["api_key"] = effective_key
-            # Also update environment variable to be safe, as litellm might fallback to it in some cases
-            os.environ["GEMINI_API_KEY"] = effective_key
-            print(f"DEBUG: Using API Key (first 5 chars): {effective_key[:5]}")
+            if "bedrock" in target_model.lower():
+                # Support AWS Keys in format: access_key:secret_key:region
+                if ":" in effective_key:
+                    parts = effective_key.split(":")
+                    if len(parts) >= 3:
+                        kwargs["aws_access_key_id"] = parts[0]
+                        kwargs["aws_secret_access_key"] = parts[1]
+                        kwargs["aws_region_name"] = parts[2]
+                        print(f"DEBUG: Using AWS Bedrock credentials from key field (Region: {parts[2]})")
+                    else:
+                        kwargs["api_key"] = effective_key
+                else:
+                    kwargs["api_key"] = effective_key
+            else:
+                kwargs["api_key"] = effective_key
+                # Also update environment variable to be safe, as litellm might fallback to it in some cases
+                os.environ["GEMINI_API_KEY"] = effective_key
+                print(f"DEBUG: Using API Key (first 5 chars): {effective_key[:5]}")
         else:
             print("DEBUG: No API Key provided to brain.chat!")
 

@@ -1,0 +1,28 @@
+[Unit]
+Description=Sen-Gateway - High-performance AI Model Gateway
+After=network.target
+
+[Service]
+# 设置运行用户，请根据实际情况修改（当前为 zhangwansen）
+User=zhangwansen
+Group=zhangwansen
+
+# 设置工作目录
+WorkingDirectory=/home/zhangwansen/.openclaw/workspace/Sen-Gateway
+
+# 环境变量加载
+Environment=PYTHONPATH=/home/zhangwansen/.openclaw/workspace/Sen-Gateway
+
+# 启动命令：使用虚拟环境中的 python 运行 run.py
+ExecStart=/home/zhangwansen/.openclaw/workspace/Sen-Gateway/venv/bin/python run.py
+
+# 自动重启策略：如果服务崩溃，5秒后自动重启
+Restart=always
+RestartSec=5
+
+# 日志输出设置
+StandardOutput=append:/home/zhangwansen/.openclaw/workspace/Sen-Gateway/sen_gateway.log
+StandardError=append:/home/zhangwansen/.openclaw/workspace/Sen-Gateway/sen_gateway.log
+
+[Install]
+WantedBy=multi-user.target

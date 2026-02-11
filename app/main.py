@@ -163,6 +163,8 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
                         model_override = f"gemini/{model_name}"
                     else:
                         model_override = model_name
+                elif provider == "bedrock":
+                    model_override = model_name if model_name.startswith("bedrock/") else f"bedrock/{model_name}"
                 else:
                     model_override = model_name # Raw fallback
                 
