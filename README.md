@@ -27,30 +27,30 @@
 
 ```mermaid
 graph TD
-    Client[Client (OpenWebUI/Cursor)] -->|OpenAI API Request| Gateway[Sen-Gateway Core]
+    UserClient[Client: Cursor/OpenWebUI] -->|OpenAI API Request| GatewayCore[Sen-Gateway Core]
     
     subgraph "Sen-Gateway (Python/FastAPI)"
         direction TB
-        Gateway -->|1. Auth & Config| DB[(SQLite Config)]
-        Gateway -->|2. Pruning Strategy| Pruner[Echo Retention (V3)]
+        GatewayCore -->|1. Auth & Config| DBCfg[(SQLite Config)]
+        GatewayCore -->|2. Pruning Strategy| PruningEngine[Echo Retention V3]
         
         subgraph "Echo Retention Algorithm"
-            Pruner -->|Lock| System[System Prompt (Cache Anchor)]
-            Pruner -->|Keep| Recent[Recent History (15 msgs)]
-            Pruner -->|Compress| Middle[Tool Outputs (Truncated)]
+            PruningEngine -->|Lock| SystemPrompt[System Prompt: Cache Anchor]
+            PruningEngine -->|Keep| RecentMsg[Recent History: 15 msgs]
+            PruningEngine -->|Compress| MiddleContent[Tool Outputs: Truncated]
         end
         
-        Pruner -->|Optimized Payload| Brain[Brain (LiteLLM Adapter)]
-        Brain -->|3. Model API Call| LLM[Gemini / OpenAI / Claude]
+        PruningEngine -->|Optimized Payload| BrainAdapter[Brain: LiteLLM Adapter]
+        BrainAdapter -->|3. Model API Call| LLMProvider[Gemini / OpenAI / Claude]
         
-        LLM -->|Response| Brain
-        Brain -->|Stream/JSON| Gateway
+        LLMProvider -->|Response| BrainAdapter
+        BrainAdapter -->|Stream/JSON| GatewayCore
         
-        Gateway -->|4. Log & Audit| Audit[Audit System]
-        Audit -->|Cost Analysis| Dashboard[Web Dashboard]
+        GatewayCore -->|4. Log & Audit| AuditSys[Audit System]
+        AuditSys -->|Cost Analysis| WebDashboard[Web Dashboard]
     end
     
-    Gateway -->|Response| Client
+    GatewayCore -->|Response| UserClient
 ```
 
 ---
@@ -126,7 +126,33 @@ Visit: `http://localhost:8000/dashboard`
 
 ### 🎨 架构流程图
 
-（见上方英文部分 Mermaid 图表，逻辑一致）
+```mermaid
+graph TD
+    UClient[客户端: Cursor/OpenWebUI] -->|OpenAI 格式请求| GCore[Sen-Gateway 核心]
+    
+    subgraph "Sen-Gateway (Python/FastAPI)"
+        direction TB
+        GCore -->|1. 鉴权与配置| DCfg[(SQLite 配置库)]
+        GCore -->|2. 剪枝策略| PEngine[Echo Retention V3 引擎]
+        
+        subgraph "回声保留算法 (Echo Retention)"
+            PEngine -->|锁定| SPrompt[系统提示词: 缓存锚点]
+            PEngine -->|保留| RMsg[近期记忆: 15 条消息]
+            PEngine -->|压缩| MContent[工具输出: 斩首去尾]
+        end
+        
+        PEngine -->|优化后的 Payload| BAdapter[模型大脑: LiteLLM 适配层]
+        BAdapter -->|3. 模型 API 调用| LProvider[Gemini / OpenAI / Claude]
+        
+        LProvider -->|响应| BAdapter
+        BAdapter -->|流式/JSON| GCore
+        
+        GCore -->|4. 日志与审计| ASys[审计系统]
+        ASys -->|成本分析| WDashboard[可视化看板]
+    end
+    
+    GCore -->|响应回复| UClient
+```
 
 ---
 
