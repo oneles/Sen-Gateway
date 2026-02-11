@@ -197,11 +197,20 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             {"val": "anthropic/claude-haiku-4-5", "label": "Claude 4.5 Haiku"}
         ],
         "bedrock": [
-            {"val": "bedrock/anthropic.claude-v4-6-opus-20260210-v1:0", "label": "Bedrock Claude 4.6 Opus"},
-            {"val": "bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0", "label": "Bedrock Claude 3.5 Sonnet"},
-            {"val": "bedrock/deepseek.deepseek-v3-2-202602-v1:0", "label": "Bedrock DeepSeek V3.2 (Coding)"},
-            {"val": "bedrock/qwen.qwen3-coder-next-202602-v1:0", "label": "Bedrock Qwen3 Coder Next"},
-            {"val": "bedrock/minimax.minimax-m2-1-202602-v1:0", "label": "Bedrock MiniMax M2.1"}
+            {"val": "bedrock/anthropic.claude-opus-4-6-v1", "label": "Bedrock Claude 4.6 Opus"},
+            {"val": "bedrock/anthropic.claude-sonnet-4-5-v1", "label": "Bedrock Claude 4.5 Sonnet"},
+            {"val": "bedrock/anthropic.claude-haiku-4-5-v1", "label": "Bedrock Claude 4.5 Haiku"},
+            {"val": "bedrock/anthropic.claude-3-7-sonnet-v1", "label": "Bedrock Claude 3.7 Sonnet"},
+            {"val": "bedrock/us.anthropic.claude-sonnet-4-5-v1", "label": "Bedrock Claude 4.5 Sonnet (US)"},
+            {"val": "bedrock/amazon.nova-pro-v1:0", "label": "Amazon Nova Pro"},
+            {"val": "bedrock/amazon.nova-lite-v1:0", "label": "Amazon Nova Lite"},
+            {"val": "bedrock/amazon.nova-micro-v1:0", "label": "Amazon Nova Micro"},
+            {"val": "bedrock/meta.llama4-400b-maverick-v1:0", "label": "Llama 4 Maverick (400B)"},
+            {"val": "bedrock/meta.llama4-17b-scout-v1:0", "label": "Llama 4 Scout (17B)"},
+            {"val": "bedrock/meta.llama3-3-70b-instruct-v1:0", "label": "Llama 3.3 (70B)"},
+            {"val": "bedrock/mistral.mistral-large-3-2512-v1:0", "label": "Mistral Large 3"},
+            {"val": "bedrock/deepseek.deepseek-v3-instruct-v1", "label": "DeepSeek-V3 (Bedrock)"},
+            {"val": "bedrock/cohere.command-r-plus-v1:0", "label": "Cohere Command R+"}
         ]
     };
 
