@@ -10,6 +10,10 @@
 
 **Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and audit mechanism.
 
+### 📸 Preview
+
+![Sen-Gateway Dashboard](assets/dashboard.png)
+
 ### 🧠 Core Features
 
 - **Echo Retention (V3) Algorithm**: 
@@ -20,8 +24,6 @@
 - **Dynamic Hot Configuration**: Switch models, configure API Keys, and proxy settings in real-time via Web UI without code changes.
 
 ### 🎨 Architecture Workflow
-
-![Sen-Gateway Dashboard](assets/dashboard.png)
 
 ```mermaid
 graph TD
@@ -109,6 +111,10 @@ Visit: `http://localhost:8000/dashboard`
 
 **Sen-Gateway** 是一个高性能、轻量级的 AI 模型网关，专为提升大语言模型（尤其是 **Google Gemini**）的效率与经济性而设计。它实现了 OpenAI 兼容的 API 接口，并内置了创新的 **Echo Retention (回声保留)** 上下文压缩与审计机制。
 
+### 📸 界面预览
+
+![Sen-Gateway 看板](assets/dashboard.png)
+
 ### 🧠 核心特性
 
 - **Echo Retention (回声保留) V3 算法**: 
@@ -119,8 +125,6 @@ Visit: `http://localhost:8000/dashboard`
 - **动态热配置**: 运行中可通过 Web UI 实时切换模型、配置 API Key 及代理设置。
 
 ### 🎨 架构流程图
-
-![Sen-Gateway 看板](assets/dashboard.png)
 
 （见上方英文部分 Mermaid 图表，逻辑一致）
 
@@ -180,11 +184,11 @@ python run.py
 
 ```text
 Sen-Gateway/
-├── app/                # Core Logic (FastAPI, Pruner, Brain)
-├── scripts/            # Tools (Reset Password, DB Check)
-├── run.py              # Entry Point
-├── requirements.txt    # Dependencies
-└── README.md           # Documentation
+├── app/                # 核心业务逻辑 (FastAPI, Pruner, Brain)
+├── scripts/            # 工具脚本 (密码重置、数据库检查、压力测试)
+├── run.py              # 服务启动入口
+├── requirements.txt    # 项目依赖清单
+└── README.md           # 使用说明
 ```
 
 ---
@@ -194,4 +198,4 @@ Sen-Gateway/
 - `secret.key` 用于加密存储 API Key，请妥善保管。
 
 ---
-*Developed by 森哥 (Senge) | Tech Core: Echo Retention (V3)*
+*Developed by 森哥 (Senge) | 技术核心：Echo Retention (V3)*
