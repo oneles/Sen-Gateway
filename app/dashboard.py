@@ -154,9 +154,29 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     let SELECTED_LOGS = [];
     let CURRENT_LOG_DATA = null;
     const MODEL_OPTIONS = {
-        "gemini": [{"val": "gemini/gemini-3-pro-preview", "label": "Gemini 3 Pro Preview"}, {"val": "gemini/gemini-2.5-pro", "label": "Gemini 2.5 Pro"}, {"val": "gemini/gemini-2.5-flash", "label": "Gemini 2.5 Flash"}],
-        "openai": [{"val": "openai/gpt-5.2-pro", "label": "GPT-5.2 Pro"}, {"val": "openai/gpt-4o", "label": "GPT-4o"}],
-        "anthropic": [{"val": "anthropic/claude-4-6-opus", "label": "Claude 4.6 Opus"}, {"val": "anthropic/claude-4-5-sonnet", "label": "Claude 4.5 Sonnet"}]
+        "gemini": [
+            {"val": "gemini/gemini-3-pro-preview", "label": "Gemini 3 Pro Preview (Computer Use)"},
+            {"val": "gemini/gemini-3-flash-preview", "label": "Gemini 3 Flash Preview"},
+            {"val": "gemini/gemini-2.5-pro", "label": "Gemini 2.5 Pro (Flagship)"},
+            {"val": "gemini/gemini-2.5-flash", "label": "Gemini 2.5 Flash"},
+            {"val": "gemini/gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash Lite"},
+            {"val": "gemini/gemini-pro-latest", "label": "Gemini Pro Latest"}
+        ],
+        "openai": [
+            {"val": "openai/gpt-5.2", "label": "GPT-5.2 (Flagship)"},
+            {"val": "openai/gpt-5.2-codex", "label": "GPT-5.2 Codex (Architecture)"},
+            {"val": "openai/gpt-5.1", "label": "GPT-5.1 (Standard)"},
+            {"val": "openai/gpt-5.1-codex-mini", "label": "GPT-5.1 Codex Mini"},
+            {"val": "openai/o3-pro", "label": "o3-pro (Deep Reasoning)"},
+            {"val": "openai/o3", "label": "o3"},
+            {"val": "openai/o4-mini", "label": "o4-mini (2026 New)"},
+            {"val": "openai/gpt-5-chat-latest", "label": "GPT-5 Chat Latest"}
+        ],
+        "anthropic": [
+            {"val": "anthropic/claude-opus-4-6", "label": "Claude 4.6 Opus"},
+            {"val": "anthropic/claude-sonnet-4-5", "label": "Claude 4.5 Sonnet (Best Coding)"},
+            {"val": "anthropic/claude-haiku-4-5", "label": "Claude 4.5 Haiku"}
+        ]
     };
 
     async function loadLogList() {
