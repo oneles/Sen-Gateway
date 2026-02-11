@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     # Ensure default admin exists
     db = SessionLocal()
     try:
-        from database import User
+        from .database import User
         if not db.query(User).filter(User.username == "admin").first():
             # Create default admin
             hashed_pw = security.get_password_hash("88888888")
