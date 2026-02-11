@@ -21,6 +21,8 @@
 
 ### 🎨 Architecture Workflow
 
+![Sen-Gateway Dashboard](assets/dashboard.png)
+
 ```mermaid
 graph TD
     Client[Client (OpenWebUI/Cursor)] -->|OpenAI API Request| Gateway[Sen-Gateway Core]
@@ -117,6 +119,8 @@ Visit: `http://localhost:8000/dashboard`
 - **动态热配置**: 运行中可通过 Web UI 实时切换模型、配置 API Key 及代理设置。
 
 ### 🎨 架构流程图
+
+![Sen-Gateway 看板](assets/dashboard.png)
 
 （见上方英文部分 Mermaid 图表，逻辑一致）
 
