@@ -92,9 +92,27 @@ python run.py
 服务默认运行在 `http://localhost:8000`。
 
 ### 2. 在 OpenClaw/客户端中配置
-将你的客户端（如 Cursor, OpenWebUI）指向 Sen-Gateway：
-- **Base URL**: `http://localhost:8000/v1`
-- **API Key**: `any` (网关会自动使用你在数据库/env中配置的真实 Key)
+
+将你的客户端（如 Cursor, OpenWebUI）指向 Sen-Gateway。以下是 **OpenClaw** 中的配置示例：
+
+```json
+"openai": {
+  "baseUrl": "http://127.0.0.1:8000/v1",
+  "apiKey": "sk-local",
+  "api": "openai-completions",
+  "models": [
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Sen Gemini 2.5 Flash",
+      "input": ["text"],
+      "contextWindow": 1000000,
+      "maxTokens": 8192,
+      "reasoning": false,
+      "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+    }
+  ]
+}
+```
 
 ### 3. 访问看板 (Dashboard)
 打开浏览器访问：`http://localhost:8000/dashboard`

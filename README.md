@@ -92,9 +92,27 @@ python run.py
 Default runs on `http://localhost:8000`.
 
 ### 2. Client Configuration (OpenClaw/Cursor)
-Point your client to Sen-Gateway:
-- **Base URL**: `http://localhost:8000/v1`
-- **API Key**: `any` (Gateway uses your configured key automatically)
+
+Point your client to Sen-Gateway. Here is a sample configuration for **OpenClaw**:
+
+```json
+"openai": {
+  "baseUrl": "http://127.0.0.1:8000/v1",
+  "apiKey": "sk-local",
+  "api": "openai-completions",
+  "models": [
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Sen Gemini 2.5 Flash",
+      "input": ["text"],
+      "contextWindow": 1000000,
+      "maxTokens": 8192,
+      "reasoning": false,
+      "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+    }
+  ]
+}
+```
 
 ### 3. Access Dashboard
 Visit: `http://localhost:8000/dashboard`
