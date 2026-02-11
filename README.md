@@ -11,6 +11,7 @@
 ### 📸 Preview
 
 ![Sen-Gateway Dashboard](assets/dashboard.png)
+![Sen-Gateway Audit View](assets/audit_view.png)
 
 ### 🧠 Core Features
 

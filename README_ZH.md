@@ -11,6 +11,7 @@
 ### 📸 界面预览
 
 ![Sen-Gateway 看板](assets/dashboard.png)
+![Sen-Gateway 审计视图](assets/audit_view.png)
 
 ### 🧠 核心特性
 
