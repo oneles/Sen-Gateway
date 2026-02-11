@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+sen_gateway.db
+sen_gateway.log
+*.bin
+.vscode/
+.idea/
+nohup.out
