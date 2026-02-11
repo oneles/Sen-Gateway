@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Form, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from .database import get_db, InteractionLog, Config, User
+from .database import get_db, InteractionLog, Config, User, CustomModel
 from pydantic import BaseModel
 import json
 import os
@@ -124,6 +124,24 @@ def clear_logs(user: User = Depends(get_current_user), db: Session = Depends(get
     db.commit()
     return {"status": "ok"}
 
+@router.get("/api/models/custom")
+def list_custom_models(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    models = db.query(CustomModel).all()
+    return [{"id": m.id, "provider": m.provider, "name": m.name, "value": m.value} for m in models]
+
+@router.post("/api/models/custom")
+async def add_custom_model(body: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    model = CustomModel(provider=body['provider'], name=body['name'], value=body['value'])
+    db.add(model)
+    db.commit()
+    return {"status": "ok", "id": model.id}
+
+@router.delete("/api/models/custom/{model_id}")
+def delete_custom_model(model_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(CustomModel).filter(CustomModel.id == model_id).delete()
+    db.commit()
+    return {"status": "ok"}
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_page():
     return """
@@ -153,7 +171,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     JS_CONTENT = """
     let SELECTED_LOGS = [];
     let CURRENT_LOG_DATA = null;
-    const MODEL_OPTIONS = {
+    let CUSTOM_MODELS = [];
+    const STATIC_MODEL_OPTIONS = {
         "gemini": [
             {"val": "gemini/gemini-3-pro-preview", "label": "Gemini 3 Pro Preview (Computer Use)"},
             {"val": "gemini/gemini-3-flash-preview", "label": "Gemini 3 Flash Preview"},
@@ -185,6 +204,15 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             {"val": "bedrock/minimax.minimax-m2-1-202602-v1:0", "label": "Bedrock MiniMax M2.1"}
         ]
     };
+
+    function getModelOptions() {
+        const options = JSON.parse(JSON.stringify(STATIC_MODEL_OPTIONS));
+        CUSTOM_MODELS.forEach(m => {
+            if (!options[m.provider]) options[m.provider] = [];
+            options[m.provider].push({"val": m.value, "label": m.name + " (Custom)", "id": m.id});
+        });
+        return options;
+    }
 
     async function loadLogList() {
         const res = await fetch('/api/logs');
@@ -359,18 +387,56 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     }
 
     async function loadConfig() {
+        const customRes = await fetch('/api/models/custom');
+        CUSTOM_MODELS = await customRes.json();
+        
         const d = await (await fetch('/api/config')).json();
         document.getElementById('model-provider').value = d.model.provider;
         updateModelOptions(d.model.name);
         document.getElementById('comp-enabled').checked = d.pruning.enabled;
         document.getElementById('proxy-enabled').checked = d.proxy.enabled;
         document.getElementById('proxy-url').value = d.proxy.url;
+        renderCustomModelList();
     }
 
     function updateModelOptions(sel=null) {
         const p = document.getElementById('model-provider').value;
-        const opts = MODEL_OPTIONS[p] || [];
+        const opts = getModelOptions()[p] || [];
         document.getElementById('model-select').innerHTML = opts.map(o => `<option value="${o.val}" ${sel===o.val?'selected':''}>${o.label}</option>`).join('');
+    }
+
+    async function addCustomModel() {
+        const provider = document.getElementById('add-model-provider').value;
+        const name = document.getElementById('add-model-name').value;
+        const value = document.getElementById('add-model-value').value;
+        if(!name || !value) { alert('Please fill name and value'); return; }
+        
+        const res = await fetch('/api/models/custom', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({provider, name, value})
+        });
+        if(res.ok) {
+            document.getElementById('add-model-name').value = '';
+            document.getElementById('add-model-value').value = '';
+            await loadConfig();
+        }
+    }
+
+    async function deleteCustomModel(id) {
+        if(!confirm('Delete this model?')) return;
+        await fetch('/api/models/custom/' + id, {method: 'DELETE'});
+        await loadConfig();
+    }
+
+    function renderCustomModelList() {
+        const listEl = document.getElementById('custom-model-list');
+        listEl.innerHTML = CUSTOM_MODELS.map(m => `
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-xs">
+                <span><b class="uppercase">${m.provider}</b>: ${m.name} (${m.value})</span>
+                <button onclick="deleteCustomModel(${m.id})" class="text-red-500 hover:text-red-700">Delete</button>
+            </div>
+        `).join('') || '<div class="text-center text-gray-400 text-[10px]">No custom models.</div>';
     }
 
     async function saveModel() {
@@ -515,6 +581,22 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
                     </div>
                     <button onclick="saveModel()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-[0.98] transition-all">Apply Changes</button>
                     
+                    <div class="pt-6 border-t space-y-4">
+                        <h3 class="font-bold">Add Custom Model</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="add-model-provider" class="p-2 bg-gray-50 border-0 rounded-lg text-xs">
+                                <option value="gemini">Gemini</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="bedrock">Bedrock</option>
+                            </select>
+                            <input type="text" id="add-model-name" placeholder="Model Name (Label)" class="p-2 bg-gray-50 border-0 rounded-lg text-xs">
+                        </div>
+                        <input type="text" id="add-model-value" placeholder="Model ID (e.g. gpt-4-turbo)" class="w-full p-2 bg-gray-50 border-0 rounded-lg text-xs">
+                        <button onclick="addCustomModel()" class="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition-all">Add Model</button>
+                        <div id="custom-model-list" class="space-y-2 mt-4"></div>
+                    </div>
+
                     <div class="flex items-center justify-between pt-6 border-t">
                         <div><h3 class="font-bold">History Compression</h3><p class="text-xs text-gray-500">Enable Echo Retention (V3) pruning</p></div>
                         <input type="checkbox" id="comp-enabled" onchange="saveComp(this.checked)" class="w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
