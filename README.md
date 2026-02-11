@@ -93,7 +93,9 @@ Default runs on `http://localhost:8000`.
 
 ### 2. Client Configuration (OpenClaw/Cursor)
 
-Point your client to Sen-Gateway. Here is a sample configuration for **OpenClaw**:
+Point your client to Sen-Gateway. For **AWS Bedrock**, use the format `AccessKey:SecretKey:Region` in the API Key field.
+
+Here is a sample configuration for **OpenClaw**:
 
 ```json
 "openai": {
@@ -122,7 +124,23 @@ Visit: `http://localhost:8000/dashboard`
 
 ---
 
-## 📁 Project Structure
+## ⚡ Advanced Usage
+
+### 🕵️ Agent Payload Handling (Auto-Compression)
+Sen-Gateway is optimized for **Agentic Workflows** (e.g., Tool Use). 
+- When an Agent generates massive tool outputs (e.g., file reading, web search), the **Echo Retention** algorithm automatically truncates middle content (retaining only head/tail) for older messages.
+- This ensures the Agent's "Chain of Thought" remains intact while preventing context window explosion.
+
+### 💰 Cost Auditing (The Audit System)
+The Dashboard isn't just for logs; it's a **Token Actuary**:
+1. Select multi-turn logs in the sidebar.
+2. Click **🚀 Audit**.
+3. The system calculates cost based on:
+   - **Token Count**: 1 Chinese char ≈ 2 tokens, 4 English chars ≈ 1 token.
+   - **Implicit Caching**: Automatically detects common prefixes between turns and applies **0.1x - 0.25x (Prompt Caching)** discount rates (based on Google Gemini/Bedrock rules).
+   - **Efficiency**: Displays real-time savings gained through Echo Retention vs. raw full-history requests.
+
+---
 
 ```text
 Sen-Gateway/

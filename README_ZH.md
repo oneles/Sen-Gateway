@@ -93,7 +93,9 @@ python run.py
 
 ### 2. 在 OpenClaw/客户端中配置
 
-将你的客户端（如 Cursor, OpenWebUI）指向 Sen-Gateway。以下是 **OpenClaw** 中的配置示例：
+将你的客户端（如 Cursor, OpenWebUI）指向 Sen-Gateway。对于 **AWS Bedrock**，请在 API Key 字段使用 `AccessKey:SecretKey:Region` 的格式。
+
+以下是 **OpenClaw** 中的配置示例：
 
 ```json
 "openai": {
@@ -122,7 +124,23 @@ python run.py
 
 ---
 
-## 📁 目录结构
+## ⚡ 高级用法
+
+### 🕵️ Agent 请求处理 (自动压缩)
+Sen-Gateway 针对 **Agent 工作流**（如 Tool Use）进行了深度优化：
+- 当 Agent 产生海量工具输出（如读取大文件、网页搜索结果）时，**Echo Retention** 算法会自动对远期消息执行“斩首去尾”压缩。
+- 这种机制在防止上下文窗口爆炸的同时，能完美保留 Agent 的“思维链（CoT）”完整性。
+
+### 💰 费率审计指南
+内置 Dashboard 不仅仅是日志查看器，更是你的 **Token 精算师**：
+1. 在侧边栏勾选多轮对话日志。
+2. 点击 **🚀 Audit**。
+3. 系统将基于以下规则精算成本：
+   - **Token 估算**：中文 1 字 ≈ 2 Token，英文 4 字符 ≈ 1 Token。
+   - **隐式缓存匹配**：自动对比前后轮次的前缀一致性，并应用 **0.1x - 0.25x (Prompt Caching)** 的缓存折扣率（参考 Google Gemini/Bedrock 真实规则）。
+   - **效率对比**：直观展示 Echo Retention 策略相比“全量历史原始请求”为你省下了多少真金白银。
+
+---
 
 ```text
 Sen-Gateway/
