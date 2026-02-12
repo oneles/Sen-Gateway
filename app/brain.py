@@ -21,51 +21,52 @@ class Brain:
 
     async def chat(self, request: ChatCompletionRequest, api_key: str = None, model_override: str = None) -> Union[ChatCompletionResponse, AsyncGenerator[Any, None]]:
         """
-        Forwards the request to the configured model.
-        Supports streaming if request.stream is True.
+        Forwards the request to the configured model with Echo Retention & Cache Anchor logic.
         """
-        
-        # Payload Cleanup: Sanitize messages
+        target_model = model_override if model_override else self.model_name
+        is_bedrock = "bedrock" in target_model.lower()
+
+        # 1. Payload Cleanup & Cache Anchor Injection
         messages = []
-        for m in request.messages:
+        cache_ctrl = {"type": "ephemeral"} # Bedrock/Anthropic Cache Control
+
+        for i, m in enumerate(request.messages):
             msg_dict = m.model_dump(exclude_none=True)
             
-            # Sanitization for Gemini and Bedrock
+            # Sanitization
             if msg_dict.get("role") in ["tool", "function"]:
                 content = msg_dict.get("content")
                 if not isinstance(content, str):
-                    try:
-                        content_str = json.dumps(content)
-                        # Remove problematic keywords
-                        for forbidden in ["#/components/schemas/", "$ref", "ValidationError"]:
-                            if forbidden in content_str:
-                                content_str = content_str.replace(forbidden, f"CLEANED_{forbidden.replace('/', '_')}")
-                        msg_dict["content"] = content_str
-                    except:
-                        msg_dict["content"] = str(content)
+                    msg_dict["content"] = json.dumps(content)
             
+            # [Cache Anchor Logic] - As per "Містер Цицькослав" advice
+            # Cache the history before the last 2 messages to maximize hits
+            if is_bedrock and i == len(request.messages) - 3:
+                if isinstance(msg_dict["content"], str):
+                    msg_dict["content"] = [{"type": "text", "text": msg_dict["content"], "cache_control": cache_ctrl}]
+                elif isinstance(msg_dict["content"], list) and len(msg_dict["content"]) > 0:
+                    msg_dict["content"][-1]["cache_control"] = cache_ctrl
+
             messages.append(msg_dict)
 
-        # Sanitize tools
+        # 2. Sanitize & Cache Tools
         tools = None
         if request.tools:
             tools = []
-            for t in request.tools:
+            for i, t in enumerate(request.tools):
                 t_dict = t.model_dump(exclude_none=True)
-                # Ensure 'parameters' exists
-                if "function" in t_dict and "parameters" not in t_dict["function"]:
-                    t_dict["function"]["parameters"] = {"type": "object", "properties": {}}
-                
-                # Bedrock specific: Descriptions cannot be empty strings for some models
-                if "function" in t_dict and not t_dict["function"].get("description"):
-                    t_dict["function"]["description"] = t_dict["function"]["name"]
-                
+                if "function" in t_dict:
+                    if "parameters" not in t_dict["function"]:
+                        t_dict["function"]["parameters"] = {"type": "object", "properties": {}}
+                    if not t_dict["function"].get("description"):
+                        t_dict["function"]["description"] = t_dict["function"]["name"]
+                    
+                    # [Cache Anchor Logic] - Cache the last tool definition
+                    if is_bedrock and i == len(request.tools) - 1:
+                        t_dict["cache_control"] = cache_ctrl
                 tools.append(t_dict)
 
-        target_model = model_override if model_override else self.model_name
-        
-        # Clean up target_model: some users might send 'bedrock/global.anthropic...' 
-        # which LiteLLM provider parsing might choke on if it sees 'global' as the provider.
+        # 3. Target Model Normalization
         if target_model.startswith("bedrock/global."):
             target_model = target_model.replace("bedrock/global.", "bedrock/anthropic.", 1)
 
@@ -79,28 +80,23 @@ class Brain:
             "stream": request.stream
         }
         
-        # Handle API key / Bedrock credentials
+        # 4. Handle Auth
         effective_key = api_key or self.api_key
         if effective_key:
-            if "bedrock" in target_model.lower():
-                if ":" in effective_key:
-                    parts = effective_key.split(":")
-                    if len(parts) >= 3:
-                        kwargs["aws_access_key_id"] = parts[0]
-                        kwargs["aws_secret_access_key"] = parts[1]
-                        kwargs["aws_region_name"] = parts[2]
-                        print(f"DEBUG: Bedrock Credentials detected for region: {parts[2]}")
-                # If no credentials found in key, litellm will use env vars
+            if is_bedrock and ":" in effective_key:
+                parts = effective_key.split(":")
+                if len(parts) >= 3:
+                    kwargs["aws_access_key_id"] = parts[0]
+                    kwargs["aws_secret_access_key"] = parts[1]
+                    kwargs["aws_region_name"] = parts[2]
             else:
                 kwargs["api_key"] = effective_key
                 os.environ["GEMINI_API_KEY"] = effective_key
         
-        # Handle Proxy
-        proxy_url = os.environ.get("https_proxy") or os.environ.get("http_proxy")
-        if proxy_url:
-            kwargs["proxy"] = proxy_url
+        if os.environ.get("https_proxy") or os.environ.get("http_proxy"):
+            kwargs["proxy"] = os.environ.get("https_proxy") or os.environ.get("http_proxy")
 
-        # Gemini Safety
+        # 5. Model Specific Tweaks
         if "gemini" in target_model.lower():
             kwargs["safety_settings"] = [
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -110,7 +106,6 @@ class Brain:
             ]
 
         if request.stream:
-            # For streaming, we also want usage
             kwargs["stream_options"] = {"include_usage": True}
             return await litellm.acompletion(**kwargs)
 
@@ -135,10 +130,7 @@ class Brain:
                 finish_reason=choice_data.finish_reason or "stop"
             )
 
-            # Ensure usage data is captured
-            usage = None
-            if hasattr(response, "usage") and response.usage:
-                usage = dict(response.usage)
+            usage = dict(response.usage) if hasattr(response, "usage") and response.usage else None
 
             return ChatCompletionResponse(
                 id=response.id,
@@ -147,7 +139,6 @@ class Brain:
                 choices=[choice],
                 usage=usage
             )
-
         except Exception as e:
             print(f"Error calling upstream model: {e}")
             raise e
