@@ -6,27 +6,21 @@
 
 ## 🌟 Introduction
 
-**Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini** and **AWS Bedrock**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and audit mechanism.
+**Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and audit mechanism.
 
 ### 📸 Preview
 
-#### 1. Real-time Traffic Monitoring
-![Main Dashboard](assets/gateway_main.png)
-
-#### 2. Deep Cost Auditing & Analysis
-![Audit View](assets/audit_details.png)
-
-#### 3. Advanced Model Management (Custom Models & Bedrock)
-![Model Management](assets/bedrock_support.png)
+![Sen-Gateway Dashboard](assets/dashboard.png)
+![Sen-Gateway Audit View](assets/audit_view.png)
 
 ### 🧠 Core Features
 
 - **Echo Retention (V3) Algorithm**: 
-  - **Cache Anchor**: Locks the System Prompt and tool definitions to ensure maximum Prompt Caching hit rates (enjoy **0.1x** pricing).
+  - **Cache Anchor**: Locks the System Prompt to ensure maximum Prompt Caching hit rates (enjoy **0.1x** pricing).
   - **Role-Aware Compression**: Automatically trims redundant long-term tool outputs while preserving core assistant responses and recent memory, reducing Token consumption by **20%-30%** while maintaining intelligence.
-- **Visual Audit Dashboard**: Real-time cost audit based on actual Gemini/Bedrock billing rules, displaying Token savings and cache benefits.
+- **Visual Audit Dashboard**: Real-time cost audit based on actual Gemini billing rules, displaying Token savings and cache benefits.
 - **Unified Protocol Conversion**: Maps models from OpenAI, Anthropic, etc., to a unified OpenAI-compatible format for one-click distribution.
-- **Dynamic Hot Configuration**: Switch models, configure API Keys (including AWS Bedrock credentials), and proxy settings in real-time via Web UI.
+- **Dynamic Hot Configuration**: Switch models, configure API Keys, and proxy settings in real-time via Web UI without code changes.
 
 ### 🎨 Architecture Workflow
 
@@ -46,7 +40,7 @@ graph TD
         end
         
         PruningEngine -->|Optimized Payload| BrainAdapter[Brain: LiteLLM Adapter]
-        BrainAdapter -->|3. Model API Call| LLMProvider[Gemini / OpenAI / Claude / Bedrock]
+        BrainAdapter -->|3. Model API Call| LLMProvider[Gemini / OpenAI / Claude]
         
         LLMProvider -->|Response| BrainAdapter
         BrainAdapter -->|Stream/JSON| GatewayCore
@@ -75,7 +69,6 @@ cd Sen-Gateway
 # Create & Activate Virtual Environment
 python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
-# Windows: venv\Scripts\activate
 
 # Install Dependencies
 pip install -r requirements.txt
@@ -94,7 +87,6 @@ GEMINI_MODEL=gemini/gemini-2.5-flash
 
 ### 1. Start Service
 ```bash
-# Execute from the root directory
 python run.py
 ```
 Default runs on `http://localhost:8000`.
@@ -149,8 +141,6 @@ The Dashboard isn't just for logs; it's a **Token Actuary**:
    - **Efficiency**: Displays real-time savings gained through Echo Retention vs. raw full-history requests.
 
 ---
-
-## 📁 Project Structure
 
 ```text
 Sen-Gateway/
