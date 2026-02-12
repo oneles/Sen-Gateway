@@ -235,28 +235,47 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
         if request.stream:
             async def stream_generator():
                 full_content = ""
+                final_usage = None
                 try:
                     async for chunk in response:
-                        # LiteLLM chunk usually has model_dump or similar
                         if hasattr(chunk, "model_dump"):
                             data = chunk.model_dump()
                         else:
                             data = dict(chunk)
                         
-                        # Try to capture content for logging
+                        # Capture usage if present (usually in the last chunk)
+                        if "usage" in data and data["usage"]:
+                            final_usage = data["usage"]
+                        
+                        # Capture content for logging
                         try:
-                            delta = data.get("choices", [{}])[0].get("delta", {})
-                            content = delta.get("content")
-                            if content:
-                                full_content += content
+                            choices = data.get("choices", [])
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                content = delta.get("content")
+                                if content:
+                                    full_content += content
                         except:
                             pass
 
                         yield f"data: {json.dumps(data)}\n\n"
                     
+                    # If we got usage, and the last chunk didn't have it (or we want to be sure), 
+                    # send one final metadata chunk that OpenClaw/Clients can use for cost calculation
+                    if final_usage:
+                        usage_data = {
+                            "id": "chatcmpl-ext",
+                            "object": "chat.completion.chunk",
+                            "created": int(time.time()),
+                            "model": actual_model_used,
+                            "choices": [],
+                            "usage": final_usage
+                        }
+                        yield f"data: {json.dumps(usage_data)}\n\n"
+
                     yield "data: [DONE]\n\n"
                     # Log after stream completes
-                    log_interaction({"content": full_content, "stream": True}, status="success")
+                    log_interaction({"content": full_content, "stream": True, "usage": final_usage}, status="success")
                 except Exception as e:
                     logger.error(f"Streaming error: {e}")
                     log_interaction({"error": str(e), "partial_content": full_content}, status="error")
