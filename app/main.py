@@ -47,6 +47,11 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to init user db: {e}")
     finally:
         db.close()
+	# Force AWS region for Bedrock
+    os.environ['AWS_REGION_NAME'] = 'us-east-1'
+    logger.info(f"AWS region set to: {os.environ.get('AWS_REGION_NAME')}")
+    
+    app.state.pruner = SkillPruner(qmd_path="qmd_data.bin")
     
     # Load Proxy Config
     db = SessionLocal()
@@ -235,17 +240,16 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
         if request.stream:
             async def stream_generator():
                 full_content = ""
-                final_usage = None
+                collected_usage = None
                 try:
                     async for chunk in response:
+                        # Handle both LiteLLM objects and plain dicts (from Bedrock)
                         if hasattr(chunk, "model_dump"):
                             data = chunk.model_dump()
+                        elif isinstance(chunk, dict):
+                            data = chunk
                         else:
                             data = dict(chunk)
-                        
-                        # Capture usage if present (usually in the last chunk)
-                        if "usage" in data and data["usage"]:
-                            final_usage = data["usage"]
                         
                         # Capture content for logging
                         try:
@@ -255,27 +259,20 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
                                 content = delta.get("content")
                                 if content:
                                     full_content += content
+                            # Capture usage from final chunk
+                            if data.get("usage"):
+                                collected_usage = data["usage"]
                         except:
                             pass
 
                         yield f"data: {json.dumps(data)}\n\n"
                     
-                    # If we got usage, and the last chunk didn't have it (or we want to be sure), 
-                    # send one final metadata chunk that OpenClaw/Clients can use for cost calculation
-                    if final_usage:
-                        usage_data = {
-                            "id": "chatcmpl-ext",
-                            "object": "chat.completion.chunk",
-                            "created": int(time.time()),
-                            "model": actual_model_used,
-                            "choices": [],
-                            "usage": final_usage
-                        }
-                        yield f"data: {json.dumps(usage_data)}\n\n"
-
                     yield "data: [DONE]\n\n"
-                    # Log after stream completes
-                    log_interaction({"content": full_content, "stream": True, "usage": final_usage}, status="success")
+                    log_interaction({
+                        "content": full_content,
+                        "stream": True,
+                        "usage": collected_usage
+                    }, status="success")
                 except Exception as e:
                     logger.error(f"Streaming error: {e}")
                     log_interaction({"error": str(e), "partial_content": full_content}, status="error")
