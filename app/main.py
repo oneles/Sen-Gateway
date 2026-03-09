@@ -151,7 +151,7 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
         try:
             db_model_provider = db.query(Config).filter_by(key="model_provider").first()
             db_model_name = db.query(Config).filter_by(key="model_name").first()
-            db_api_key = db.query(Config).filter_by(key="api_key").first()
+            db_api_key = db.query(Config).filter_by(key="model_api_key").first()
             
             if db_model_provider and db_model_name and db_model_name.value:
                 provider = db_model_provider.value

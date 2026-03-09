@@ -1,5 +1,17 @@
 import os
 import litellm
+
+def _sanitize_json_schema(schema):
+    if isinstance(schema, dict):
+        schema.pop("patternProperties", None)
+        schema.pop("additionalProperties", None)
+        for k, v in schema.items():
+            schema[k] = _sanitize_json_schema(v)
+    elif isinstance(schema, list):
+        for i in range(len(schema)):
+            schema[i] = _sanitize_json_schema(schema[i])
+    return schema
+
 import json
 import time
 import boto3
@@ -561,8 +573,11 @@ class Brain:
             tools = []
             for t in request.tools:
                 t_dict = t.model_dump(exclude_none=True)
-                if "function" in t_dict and "parameters" not in t_dict["function"]:
-                    t_dict["function"]["parameters"] = {"type": "object", "properties": {}}
+                if "function" in t_dict:
+                    if "parameters" not in t_dict["function"]:
+                        t_dict["function"]["parameters"] = {"type": "object", "properties": {}}
+                    else:
+                        t_dict["function"]["parameters"] = _sanitize_json_schema(t_dict["function"]["parameters"])
                 tools.append(t_dict)
 
         kwargs = {
@@ -572,7 +587,8 @@ class Brain:
             "tool_choice": request.tool_choice if tools else None,
             "max_tokens": request.max_tokens,
             "temperature": request.temperature,
-            "stream": request.stream
+            "stream": request.stream,
+            "timeout": 15
         }
 
         if effective_key:
