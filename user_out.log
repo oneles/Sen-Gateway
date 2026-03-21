@@ -1,0 +1,13 @@
+INFO:     Started server process [9725]
+INFO:     Waiting for application startup.
+INFO:app.main:Initializing Sen-Gateway (Reborn)...
+INFO:app.main:Created default admin user (admin/88888888)
+INFO:app.main:AWS region set to: us-east-1
+INFO:app.pruner:Echo Retention (V3) initialized (Tool Pruning Disabled).
+INFO:app.main:Proxy disabled (env vars cleared)
+INFO:app.pruner:Echo Retention (V3) initialized (Tool Pruning Disabled).
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:app.main:Shutting down Sen-Gateway...
+INFO:     Application shutdown complete.

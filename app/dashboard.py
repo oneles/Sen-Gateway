@@ -72,7 +72,7 @@ def get_config(user: User = Depends(get_current_user), db: Session = Depends(get
     return {
         "proxy": {"enabled": get_val("proxy_enabled", "false") == "true", "url": get_val("proxy_url", "http://127.0.0.1:7897")},
         "pruning": {"enabled": get_val("pruning_enabled", "true") == "true"},
-        "model": {"provider": get_val("model_provider", "gemini"), "name": get_val("model_name", "gemini-2.5-flash"), "has_key": bool(get_val("api_key", ""))}
+        "model": {"provider": get_val("model_provider", "gemini"), "name": get_val("model_name", "gemini-3.1-pro-preview"), "has_key": bool(get_val("api_key", ""))}
     }
 
 @router.post("/api/config/{part}")
@@ -174,27 +174,24 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     let CUSTOM_MODELS = [];
     const STATIC_MODEL_OPTIONS = {
         "gemini": [
-            {"val": "gemini/gemini-3-pro-preview", "label": "Gemini 3 Pro Preview (Computer Use)"},
-            {"val": "gemini/gemini-3-flash-preview", "label": "Gemini 3 Flash Preview"},
-            {"val": "gemini/gemini-2.5-pro", "label": "Gemini 2.5 Pro (Flagship)"},
-            {"val": "gemini/gemini-2.5-flash", "label": "Gemini 2.5 Flash"},
-            {"val": "gemini/gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash Lite"},
-            {"val": "gemini/gemini-pro-latest", "label": "Gemini Pro Latest"}
+            {"val": "gemini/gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro"},
+            {"val": "gemini/gemini-3-flash-preview", "label": "Gemini 3 Flash"},
+            {"val": "gemini/gemini-3.1-flash-lite", "label": "Gemini 3.1 Flash-Lite"},
+            {"val": "gemini/gemini-3.1-flash-image", "label": "Nano Banana 2"},
+            {"val": "gemini/veo-3.1-generate", "label": "Veo 3.1"}
         ],
         "openai": [
-            {"val": "openai/gpt-5.2", "label": "GPT-5.2 (Flagship)"},
-            {"val": "openai/gpt-5.2-codex", "label": "GPT-5.2 Codex (Architecture)"},
-            {"val": "openai/gpt-5.1", "label": "GPT-5.1 (Standard)"},
-            {"val": "openai/gpt-5.1-codex-mini", "label": "GPT-5.1 Codex Mini"},
-            {"val": "openai/o3-pro", "label": "o3-pro (Deep Reasoning)"},
-            {"val": "openai/o3", "label": "o3"},
-            {"val": "openai/o4-mini", "label": "o4-mini (2026 New)"},
-            {"val": "openai/gpt-5-chat-latest", "label": "GPT-5 Chat Latest"}
+            {"val": "openai/gpt-5.4-pro-2026-03", "label": "GPT-5.4 Pro"},
+            {"val": "openai/gpt-5.4-thinking", "label": "GPT-5.4 Thinking"},
+            {"val": "openai/gpt-5.4-mini-2026-03", "label": "GPT-5.4 mini"},
+            {"val": "openai/o3-2025-04-16", "label": "OpenAI o3"},
+            {"val": "openai/o3-mini-2026-01", "label": "OpenAI o3-mini"}
         ],
         "anthropic": [
             {"val": "anthropic/claude-opus-4-6", "label": "Claude 4.6 Opus"},
-            {"val": "anthropic/claude-sonnet-4-5", "label": "Claude 4.5 Sonnet (Best Coding)"},
-            {"val": "anthropic/claude-haiku-4-5", "label": "Claude 4.5 Haiku"}
+            {"val": "anthropic/claude-sonnet-4-6", "label": "Claude 4.6 Sonnet"},
+            {"val": "anthropic/claude-haiku-4-5", "label": "Claude 4.5 Haiku"},
+            {"val": "anthropic/claude-4-6-code-preview", "label": "Claude Code v2"}
         ],
         "bedrock": [
             {"val": "bedrock/anthropic.claude-opus-4-6-v1", "label": "Bedrock Claude 4.6 Opus"},
