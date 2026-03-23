@@ -71,7 +71,7 @@ def get_config(user: User = Depends(get_current_user), db: Session = Depends(get
         return obj.value if obj else d
     return {
         "proxy": {"enabled": get_val("proxy_enabled", "false") == "true", "url": get_val("proxy_url", "http://127.0.0.1:7897")},
-        "pruning": {"enabled": get_val("pruning_enabled", "true") == "true"},
+        "pruning": {"enabled": get_val("pruning_enabled", "true") == "true", "language": get_val("pruning_language", "en")},
         "model": {"provider": get_val("model_provider", "gemini"), "name": get_val("model_name", "gemini-3.1-pro-preview"), "has_key": bool(get_val("api_key", ""))}
     }
 
@@ -400,6 +400,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         document.getElementById('model-provider').value = d.model.provider;
         updateModelOptions(d.model.name);
         document.getElementById('comp-enabled').checked = d.pruning.enabled;
+        document.getElementById('comp-language').value = d.pruning.language || 'en';
         document.getElementById('proxy-enabled').checked = d.proxy.enabled;
         document.getElementById('proxy-url').value = d.proxy.url;
         renderCustomModelList();
@@ -452,6 +453,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     }
 
     async function saveComp(v) { await fetch('/api/config/pruning', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:v})}); }
+    async function saveCompLang(v) { await fetch('/api/config/pruning', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({language:v})}); }
     async function saveProxy() {
         const body = { enabled: document.getElementById('proxy-enabled').checked, url: document.getElementById('proxy-url').value };
         await fetch('/api/config/proxy', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
@@ -604,8 +606,14 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
                     </div>
 
                     <div class="flex items-center justify-between pt-6 border-t">
-                        <div><h3 class="font-bold">History Compression</h3><p class="text-xs text-gray-500">Enable Echo Retention (V3) pruning</p></div>
-                        <input type="checkbox" id="comp-enabled" onchange="saveComp(this.checked)" class="w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <div><h3 class="font-bold">History Compression</h3><p class="text-xs text-gray-500">Enable Echo Retention (V5) pruning</p></div>
+                        <div class="flex items-center gap-2">
+                            <select id="comp-language" onchange="saveCompLang(this.value)" class="p-1 bg-gray-50 border rounded text-[10px]">
+                                <option value="en">English</option>
+                                <option value="zh">中文</option>
+                            </select>
+                            <input type="checkbox" id="comp-enabled" onchange="saveComp(this.checked)" class="w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </div>
                     </div>
 
                     <div class="pt-6 border-t space-y-4">

@@ -1,4 +1,4 @@
-# Sen-Gateway 🚀
+# Sen-Gateway 🚀 (Echo Retention V5)
 
 [中文版](README_ZH.md)
 
@@ -6,7 +6,7 @@
 
 ## 🌟 Introduction
 
-**Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and audit mechanism.
+**Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and multi-language audit mechanism.
 
 ### 📸 Preview
 
@@ -15,42 +15,44 @@
 
 ### 🧠 Core Features
 
-- **Echo Retention (V3) Algorithm**: 
+- **Echo Retention (V5) Algorithm**: 
+  - **Tool-Aware Pruning**: Automatically detects and prunes outputs from Browser, Terminal Logs, Search, and JSON data with semantic precision.
+  - **Multi-Language Support**: Aligns pruning markers with the user's language (EN/ZH) to minimize model context-switching overhead.
   - **Cache Anchor**: Locks the System Prompt to ensure maximum Prompt Caching hit rates (enjoy **0.1x** pricing).
-  - **Role-Aware Compression**: Automatically trims redundant long-term tool outputs while preserving core assistant responses and recent memory, reducing Token consumption by **20%-30%** while maintaining intelligence.
+  - **Role-Aware Compression**: Automatically trims redundant long-term tool outputs while preserving core assistant responses and recent memory, reducing Token consumption by **20%-40%**.
 - **Visual Audit Dashboard**: Real-time cost audit based on actual Gemini billing rules, displaying Token savings and cache benefits.
-- **Unified Protocol Conversion**: Maps models from OpenAI, Anthropic, etc., to a unified OpenAI-compatible format for one-click distribution.
-- **Dynamic Hot Configuration**: Switch models, configure API Keys, and proxy settings in real-time via Web UI without code changes.
+- **Unified Protocol Conversion**: Maps models from OpenAI, Anthropic, AWS Bedrock, etc., to a unified OpenAI-compatible format.
+- **Dynamic Hot Configuration**: Switch models, configure API Keys, proxy settings, and **pruning language** in real-time via Web UI.
 
-### 🎨 Architecture Workflow
+---
 
-```mermaid
-graph TD
-    UserClient[Client: Cursor/OpenWebUI] -->|OpenAI API Request| GatewayCore[Sen-Gateway Core]
-    
-    subgraph "Sen-Gateway (Python/FastAPI)"
-        direction TB
-        GatewayCore -->|1. Auth & Config| DBCfg[(SQLite Config)]
-        GatewayCore -->|2. Pruning Strategy| PruningEngine[Echo Retention V3]
-        
-        subgraph "Echo Retention Algorithm"
-            PruningEngine -->|Lock| SystemPrompt[System Prompt: Cache Anchor]
-            PruningEngine -->|Keep| RecentMsg[Recent History: 15 msgs]
-            PruningEngine -->|Compress| MiddleContent[Tool Outputs: Truncated]
-        end
-        
-        PruningEngine -->|Optimized Payload| BrainAdapter[Brain: LiteLLM Adapter]
-        BrainAdapter -->|3. Model API Call| LLMProvider[Gemini / OpenAI / Claude]
-        
-        LLMProvider -->|Response| BrainAdapter
-        BrainAdapter -->|Stream/JSON| GatewayCore
-        
-        GatewayCore -->|4. Log & Audit| AuditSys[Audit System]
-        AuditSys -->|Cost Analysis| WebDashboard[Web Dashboard]
-    end
-    
-    GatewayCore -->|Response| UserClient
-```
+## 💡 Developer Recommendation: Prompt Injection
+
+To help the LLM better understand the **Echo Retention (V5)** pruning logic and reduce reasoning hallucinations, we strongly recommend injecting the following strategy into your **System Prompt** at the application layer (e.g., OpenClaw, Cursor, or custom apps).
+
+Choose the version that matches the **Language** setting in your Sen-Gateway Dashboard:
+
+### 🇺🇸 Recommended English Prompt
+> **[System: Sen-Gateway V5 Semantic Pruning Awareness]**
+> Context optimization is active. Tool outputs have been pruned using **Echo Retention (V5)** strategies to reduce latency:
+> - **Browser**: Only interactive nodes (with `ref` or functional roles) are preserved. Static nodes are omitted.
+> - **Exec Logs**: Middle segments are hidden; only HEAD/TAIL and lines containing `error|warning|failed|exception` are kept.
+> - **Structured Data (JSON)**: Large arrays are sampled (First 2 + Last 1); strings longer than 500 chars are truncated.
+> - **Search**: Only the top 5 results are shown.
+> - **Long Text (Fallback)**: For text over 1500 chars, only the first and last 500 chars are preserved.
+> 
+> **Note**: If critical details are missing, explicitly request a "full-context" retry or specific filters.
+
+### 🇨🇳 Recommended Chinese Prompt
+> **[系统：Sen-Gateway V5 语义剪枝感知]**
+> 当前会话已启用语义压缩。为了提升响应速度并降低延迟，系统已根据以下 **V5 剪枝策略** 对工具输出进行了精简：
+> - **浏览器 (Browser)**: 仅保留具备 `ref` 句柄或交互角色（如按钮、输入框）的 UI 节点，剔除静态展示内容。
+> - **终端日志 (Exec/Process)**: 仅保留首尾各 10/20 行，以及中间部分包含 `error|warning|failed|exception` 的关键行。
+> - **结构化数据 (JSON)**: 对列表进行采样（保留前2项与最后1项），长字符串（>500 字符）会被截断展示。
+> - **网页搜索 (Search)**: 仅保留相关度最高的前 5 条结果。
+> - **长文本 (Fallback)**: 超过 1500 字符的文本仅保留首尾各 500 字符。
+> 
+> **提示**：如需获取被隐藏的完整细节，请明确要求“禁用剪枝重试”或“获取完整数据”。
 
 ---
 
@@ -95,32 +97,11 @@ Default runs on `http://localhost:8000`.
 
 Point your client to Sen-Gateway. For **AWS Bedrock**, use the format `AccessKey:SecretKey:Region` in the API Key field.
 
-Here is a sample configuration for **OpenClaw**:
-
-```json
-"openai": {
-  "baseUrl": "http://127.0.0.1:8000/v1",
-  "apiKey": "sk-local",
-  "api": "openai-completions",
-  "models": [
-    {
-      "id": "gemini-2.5-flash",
-      "name": "Sen Gemini 2.5 Flash",
-      "input": ["text"],
-      "contextWindow": 1000000,
-      "maxTokens": 8192,
-      "reasoning": false,
-      "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
-    }
-  ]
-}
-```
-
 ### 3. Access Dashboard
 Visit: `http://localhost:8000/dashboard`
 - **Default User**: `admin`
 - **Default Password**: `88888888`
-- **Features**: View interaction logs, run cost audits, modify system config.
+- **Features**: View interaction logs, run cost audits, modify system config (including **Language Switch**).
 
 ---
 
@@ -137,7 +118,7 @@ The Dashboard isn't just for logs; it's a **Token Actuary**:
 2. Click **🚀 Audit**.
 3. The system calculates cost based on:
    - **Token Count**: 1 Chinese char ≈ 2 tokens, 4 English chars ≈ 1 token.
-   - **Implicit Caching**: Automatically detects common prefixes between turns and applies **0.1x - 0.25x (Prompt Caching)** discount rates (based on Google Gemini/Bedrock rules).
+   - **Implicit Caching**: Automatically detects common prefixes between turns and applies **0.1x - 0.25x (Prompt Caching)** discount rates.
    - **Efficiency**: Displays real-time savings gained through Echo Retention vs. raw full-history requests.
 
 ---
@@ -158,4 +139,4 @@ Sen-Gateway/
 - `secret.key` is used for encrypting API Keys. Keep it safe.
 
 ---
-*Developed by 森哥 (Senge) | Tech Core: Echo Retention (V3)*
+*Developed by 森哥 (Senge) | Tech Core: Echo Retention (V5)*
