@@ -1,142 +1,151 @@
-# Sen-Gateway 🚀 (Echo Retention V5)
+# Sen-Gateway
 
-[中文版](README_ZH.md)
+[简体中文](README_ZH.md)
 
----
+Sen-Gateway is a local, OpenAI-compatible model gateway for routing agent and application traffic across multiple LLM providers. It combines runtime model switching, provider-scoped credential storage, reasoning controls, request inspection, and optional context compression in one lightweight FastAPI service.
 
-## 🌟 Introduction
+## Highlights
 
-**Sen-Gateway** is a high-performance, lightweight AI model gateway designed to optimize efficiency and cost for Large Language Models (LLMs), especially **Google Gemini**. It implements an OpenAI-compatible API interface and features the innovative **Echo Retention** context compression and multi-language audit mechanism.
+- **OpenAI-compatible endpoint** — use `/v1/chat/completions` with existing SDKs and agent clients.
+- **Multi-provider routing** — configure OpenAI, Anthropic, Google Gemini, DeepSeek, and AWS Bedrock models through LiteLLM.
+- **DeepSeek support** — built-in DeepSeek V4 Pro and V4 Flash routes, plus custom model IDs.
+- **Reasoning strength** — choose Fast, Deep, or Maximum without re-entering an API key. Explicit request parameters always take priority.
+- **Provider-scoped credentials** — models from the same provider reuse its encrypted key; switching back to a configured provider does not require entering the key again.
+- **Echo Retention V5** — optionally compress older tool output while preserving recent conversation context.
+- **Request observability** — inspect the original request, final upstream payload, model response, latency, usage, cache hits, and estimated context cost.
+- **Bilingual dashboard** — English and Simplified Chinese, with system, light, and dark themes.
 
-### 📸 Preview
+## Interface
 
 ![Sen-Gateway Dashboard](assets/dashboard.png)
 ![Sen-Gateway Audit View](assets/audit_view.png)
 
-### 🧠 Core Features
+## Quick start
 
-- **Echo Retention (V5) Algorithm**: 
-  - **Tool-Aware Pruning**: Automatically detects and prunes outputs from Browser, Terminal Logs, Search, and JSON data with semantic precision.
-  - **Multi-Language Support**: Aligns pruning markers with the user's language (EN/ZH) to minimize model context-switching overhead.
-  - **Cache Anchor**: Locks the System Prompt to ensure maximum Prompt Caching hit rates (enjoy **0.1x** pricing).
-  - **Role-Aware Compression**: Automatically trims redundant long-term tool outputs while preserving core assistant responses and recent memory, reducing Token consumption by **20%-40%**.
-- **Visual Audit Dashboard**: Real-time cost audit based on actual Gemini billing rules, displaying Token savings and cache benefits.
-- **Unified Protocol Conversion**: Maps models from OpenAI, Anthropic, AWS Bedrock, etc., to a unified OpenAI-compatible format.
-- **Dynamic Hot Configuration**: Switch models, configure API Keys, proxy settings, and **pruning language** in real-time via Web UI.
+### Requirements
 
----
+- Python 3.9+
+- Network access to the selected model provider
+- A provider API key or AWS credentials
 
-## 💡 Developer Recommendation: Prompt Injection
+### Install and run
 
-To help the LLM better understand the **Echo Retention (V5)** pruning logic and reduce reasoning hallucinations, we strongly recommend injecting the following strategy into your **System Prompt** at the application layer (e.g., OpenClaw, Cursor, or custom apps).
-
-Choose the version that matches the **Language** setting in your Sen-Gateway Dashboard:
-
-### 🇺🇸 Recommended English Prompt
-> **[System: Sen-Gateway V5 Semantic Pruning Awareness]**
-> Context optimization is active. Tool outputs have been pruned using **Echo Retention (V5)** strategies to reduce latency:
-> - **Browser**: Only interactive nodes (with `ref` or functional roles) are preserved. Static nodes are omitted.
-> - **Exec Logs**: Middle segments are hidden; only HEAD/TAIL and lines containing `error|warning|failed|exception` are kept.
-> - **Structured Data (JSON)**: Large arrays are sampled (First 2 + Last 1); strings longer than 500 chars are truncated.
-> - **Search**: Only the top 5 results are shown.
-> - **Long Text (Fallback)**: For text over 1500 chars, only the first and last 500 chars are preserved.
-> 
-> **Note**: If critical details are missing, explicitly request a "full-context" retry or specific filters.
-
-### 🇨🇳 Recommended Chinese Prompt
-> **[系统：Sen-Gateway V5 语义剪枝感知]**
-> 当前会话已启用语义压缩。为了提升响应速度并降低延迟，系统已根据以下 **V5 剪枝策略** 对工具输出进行了精简：
-> - **浏览器 (Browser)**: 仅保留具备 `ref` 句柄或交互角色（如按钮、输入框）的 UI 节点，剔除静态展示内容。
-> - **终端日志 (Exec/Process)**: 仅保留首尾各 10/20 行，以及中间部分包含 `error|warning|failed|exception` 的关键行。
-> - **结构化数据 (JSON)**: 对列表进行采样（保留前2项与最后1项），长字符串（>500 字符）会被截断展示。
-> - **网页搜索 (Search)**: 仅保留相关度最高的前 5 条结果。
-> - **长文本 (Fallback)**: 超过 1500 字符的文本仅保留首尾各 500 字符。
-> 
-> **提示**：如需获取被隐藏的完整细节，请明确要求“禁用剪枝重试”或“获取完整数据”。
-
----
-
-## 🛠️ Quick Start
-
-### 1. Prerequisites
-- **Python**: 3.9+
-- **Network**: Ensure access to LLM APIs (or configure built-in proxy).
-
-### 2. Installation
 ```bash
-# Clone repository
 git clone https://github.com/oneles/Sen-Gateway.git
 cd Sen-Gateway
 
-# Create & Activate Virtual Environment
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-
-# Install Dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 3. Setup API Key
-Create a `.env` file in the root directory:
-```env
-GEMINI_API_KEY=your_google_api_key
-GEMINI_MODEL=gemini/gemini-2.5-flash
-```
-
----
-
-## 🚀 Run & Integrate
-
-### 1. Start Service
-```bash
 python run.py
 ```
-Default runs on `http://localhost:8000`.
 
-### 2. Client Configuration (OpenClaw/Cursor)
+The gateway starts at `http://127.0.0.1:8000`.
 
-Point your client to Sen-Gateway. For **AWS Bedrock**, use the format `AccessKey:SecretKey:Region` in the API Key field.
+Open `http://127.0.0.1:8000/dashboard`, sign in, and configure the provider, model, and API key under **Routing**.
 
-### 3. Access Dashboard
-Visit: `http://localhost:8000/dashboard`
-- **Default User**: `admin`
-- **Default Password**: `88888888`
-- **Features**: View interaction logs, run cost audits, modify system config (including **Language Switch**).
+Default local dashboard credentials:
 
----
+- Username: `admin`
+- Password: `88888888`
 
-## ⚡ Advanced Usage
+Change the default password before exposing the service to other machines:
 
-### 🕵️ Agent Payload Handling (Auto-Compression)
-Sen-Gateway is optimized for **Agentic Workflows** (e.g., Tool Use). 
-- When an Agent generates massive tool outputs (e.g., file reading, web search), the **Echo Retention** algorithm automatically truncates middle content (retaining only head/tail) for older messages.
-- This ensures the Agent's "Chain of Thought" remains intact while preventing context window explosion.
+```bash
+python scripts/reset_password.py
+```
 
-### 💰 Cost Auditing (The Audit System)
-The Dashboard isn't just for logs; it's a **Token Actuary**:
-1. Select multi-turn logs in the sidebar.
-2. Click **🚀 Audit**.
-3. The system calculates cost based on:
-   - **Token Count**: 1 Chinese char ≈ 2 tokens, 4 English chars ≈ 1 token.
-   - **Implicit Caching**: Automatically detects common prefixes between turns and applies **0.1x - 0.25x (Prompt Caching)** discount rates.
-   - **Efficiency**: Displays real-time savings gained through Echo Retention vs. raw full-history requests.
+## Call the gateway
 
----
+Sen-Gateway accepts standard OpenAI chat-completion requests. Use `default` to route through the model selected in the dashboard.
+
+### cURL
+
+```bash
+curl http://127.0.0.1:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "default",
+    "messages": [
+      {"role": "user", "content": "Hello"}
+    ]
+  }'
+```
+
+### Python
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://127.0.0.1:8000/v1",
+    api_key="local-placeholder",
+)
+
+response = client.chat.completions.create(
+    model="default",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+The client-side key is only a placeholder for SDK compatibility. Provider credentials are managed locally by Sen-Gateway.
+
+## Reasoning controls
+
+The dashboard provides three gateway defaults:
+
+| Mode | DeepSeek V4 | Other compatible reasoning models |
+|---|---|---|
+| Fast | Thinking disabled | Low effort |
+| Deep | Thinking enabled, `high` | Medium effort |
+| Maximum | Thinking enabled, `max` | High effort |
+
+DeepSeek maps `low` and `medium` reasoning effort to `high`, so Sen-Gateway uses the thinking toggle to make Fast mode meaningfully different. If a request explicitly supplies `reasoning_effort` or `thinking`, the request value overrides the dashboard default.
+
+Reasoning models receive a larger output allowance and upstream timeout by default. These values can be overridden with environment variables:
+
+```env
+REASONING_MIN_OUTPUT_TOKENS=4096
+LITELLM_UPSTREAM_TIMEOUT_SECONDS=60
+```
+
+## Provider credentials
+
+- Keys are encrypted before they are stored in the local SQLite database.
+- Each provider has its own saved credential.
+- Switching models within the same provider does not require entering the key again.
+- Leaving the API-key field blank preserves the saved key.
+- Switching to a provider that has never been configured requires that provider's key.
+- AWS Bedrock currently accepts `AccessKey:SecretKey:Region` in the dashboard key field.
+
+## Echo Retention V5
+
+History compression is optional. When enabled, Sen-Gateway reduces older tool output using content-aware rules for browser trees, terminal logs, search results, structured JSON, and long fallback text. Recent messages and the system prompt remain available to the upstream model.
+
+The audit view compares the captured request with the payload sent upstream. Its token and cost figures are estimates for diagnosis and relative comparison; provider billing remains authoritative.
+
+## Security
+
+- `.env`, `secret.key`, the SQLite database, and runtime logs are excluded from Git.
+- `secret.key` is generated locally and must not be committed or shared.
+- Never place a real provider key in source code, README examples, or client configuration committed to Git.
+- Keep the dashboard bound to a trusted network and change the default administrator password.
+- If a local encryption key is lost, existing encrypted provider credentials cannot be recovered and must be entered again.
+
+## Project structure
 
 ```text
 Sen-Gateway/
-├── app/                # Core Logic (FastAPI, Pruner, Brain)
-├── scripts/            # Tools (Reset Password, DB Check)
-├── run.py              # Entry Point
-├── requirements.txt    # Dependencies
-└── README.md           # Documentation
+├── app/                # FastAPI routes, model adapter, dashboard, pruning
+├── scripts/            # Maintenance and diagnostic utilities
+├── run.py              # Local service entry point
+├── requirements.txt    # Full dependency lock
+└── README.md           # English documentation
 ```
 
 ---
 
-## 🛡️ Security
-- Recommended: change default admin password via `scripts/reset_password.py`.
-- `secret.key` is used for encrypting API Keys. Keep it safe.
-
----
-*Developed by 森哥 (Senge) | Tech Core: Echo Retention (V5)*
+Developed by 森哥 (Senge) · Echo Retention V5

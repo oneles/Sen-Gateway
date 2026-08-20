@@ -1,118 +1,151 @@
-# Sen-Gateway 🚀 (Echo Retention V5)
+# Sen-Gateway
 
-[English Version](README.md)
+[English](README.md)
 
----
+Sen-Gateway 是一个运行在本地、兼容 OpenAI 接口的多模型网关，适合 Agent、开发工具和应用统一接入不同的大模型服务。它将模型路由、厂商密钥管理、推理强度、请求追踪和可选的上下文压缩集中在一个轻量的 FastAPI 服务中。
 
-## 🌟 简介
+## 主要能力
 
-**Sen-Gateway** 是一款高性能、轻量的 AI 模型网关，专为优化大语言模型（LLM，特别是 **Google Gemini**）的效率和成本而设计。它实现了 OpenAI 兼容的 API 接口，并搭载了创新的 **Echo Retention** 上下文压缩与审计机制。
+- **兼容 OpenAI 接口**：现有 SDK 和 Agent 客户端可通过 `/v1/chat/completions` 接入。
+- **多厂商路由**：通过 LiteLLM 接入 OpenAI、Anthropic、Google Gemini、DeepSeek 和 AWS Bedrock。
+- **支持 DeepSeek**：内置 DeepSeek V4 Pro、V4 Flash，也可以添加自定义模型 ID。
+- **推理强度**：提供快速、深入、极致三档；调整推理强度不需要重新输入 API Key，请求显式参数始终优先。
+- **按厂商保存密钥**：同一厂商的模型自动复用加密密钥，切回已经配置过的厂商也不需要重新填写。
+- **Echo Retention V5**：可选择压缩较早的工具输出，同时保留近期对话上下文。
+- **请求追踪**：查看原始请求、发送到上游的内容、模型返回、耗时、Token、缓存命中和上下文成本估算。
+- **双语和主题**：支持 English、简体中文，以及跟随系统、浅色、深色主题。
 
-### 📸 预览
+## 界面
 
-![Sen-Gateway Dashboard](assets/dashboard.png)
-![Sen-Gateway Audit View](assets/audit_view.png)
+![Sen-Gateway 控制台](assets/dashboard.png)
+![Sen-Gateway 上下文分析](assets/audit_view.png)
 
-### 🧠 核心特性
+## 快速开始
 
-- **Echo Retention (V5) 算法**: 
-  - **工具感知剪枝 (Tool-Aware Pruning)**: 自动识别浏览器、终端日志、搜索结果等工具输出，进行语义级精简。
-  - **多语言对齐**: 支持中英文双语剪枝标记，减少模型推理时的语境切换损耗。
-  - **缓存锚点 (Cache Anchor)**: 锁定 System Prompt 以确保最高级别的 Prompt Caching 命中率（享受低至 **0.1x** 的计费）。
-  - **角色感知压缩**: 自动精简冗余的长期工具输出，同时保留核心回复和近期记忆，Token 节省率可达 **20%-40%**。
-- **可视化审计面板**: 基于 Gemini 实际计费规则进行实时成本审计，展示 Token 节省量和缓存收益。
-- **统一协议转换**: 将 OpenAI、Anthropic、AWS Bedrock 等模型统一映射为 OpenAI 兼容格式。
-- **动态热配置**: 无需重启，通过 Web UI 实时切换模型、配置 API Key 及代理设置。
+### 环境要求
 
----
+- Python 3.9+
+- 可以访问所选模型厂商的网络
+- 对应厂商的 API Key 或 AWS 凭据
 
-## 💡 开发者建议：提示词注入 (Prompt Injection)
+### 安装并启动
 
-为了让大模型更好地理解 **Echo Retention (V5)** 的剪枝逻辑并减少推理幻觉，我们强烈建议在集成（如使用 OpenClaw、Cursor 或自定义应用）时，在 **System Prompt** 头部注入以下策略说明。
-
-请根据你在 Sen-Gateway Dashboard 中设置的 **Language** 选项选择对应的提示词：
-
-### 🇨🇳 中文提示词 (推荐)
-> **[系统：Sen-Gateway V5 语义剪枝感知]**
-> 当前会话已启用语义压缩。为了提升响应速度并降低延迟，系统已根据以下 **V5 剪枝策略** 对工具输出进行了精简：
-> - **浏览器 (Browser)**: 仅保留具备 `ref` 句柄或交互角色（如按钮、输入框）的 UI 节点，剔除静态展示内容。
-> - **终端日志 (Exec/Process)**: 仅保留首尾各 10/20 行，以及中间部分包含 `error|warning|failed|exception` 的关键行。
-> - **结构化数据 (JSON)**: 对列表进行采样（保留前2项与最后1项），长字符串（>500 字符）会被截断展示。
-> - **网页搜索 (Search)**: 仅保留相关度最高的前 5 条结果。
-> - **长文本 (Fallback)**: 超过 1500 字符的文本仅保留首尾各 500 字符。
-> 
-> **提示**：如需获取被隐藏的完整细节，请明确要求“禁用剪枝重试”或“获取完整数据”。
-
-### 🇺🇸 English Prompt
-> **[System: Sen-Gateway V5 Semantic Pruning Awareness]**
-> Context optimization is active. Tool outputs have been pruned using **Echo Retention (V5)** strategies to reduce latency:
-> - **Browser**: Only interactive nodes (with `ref` or functional roles) are preserved.
-> - **Exec Logs**: Middle segments are hidden; only HEAD/TAIL and lines containing `error|warning|failed|exception` are kept.
-> - **Structured Data (JSON)**: Large arrays are sampled (First 2 + Last 1); strings longer than 500 chars are truncated.
-> - **Search**: Only the top 5 results are shown.
-> - **Long Text (Fallback)**: For text over 1500 chars, only the first and last 500 chars are preserved.
-> 
-> **Note**: If critical details are missing, explicitly request a "full-context" retry or specific filters.
-
----
-
-## 🛠️ 快速开始
-
-### 1. 环境要求
-- **Python**: 3.9+
-- **网络**: 确保可以访问 LLM API（或配置内置代理）。
-
-### 2. 安装
 ```bash
-# 克隆仓库
 git clone https://github.com/oneles/Sen-Gateway.git
 cd Sen-Gateway
 
-# 创建并激活虚拟环境
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-
-# 安装依赖
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 3. 配置 API Key
-在根目录下创建 `.env` 文件：
-```env
-GEMINI_API_KEY=your_google_api_key
-GEMINI_MODEL=gemini/gemini-2.5-flash
-```
-
----
-
-## 🚀 运行与集成
-
-### 1. 启动服务
-```bash
 python run.py
 ```
-默认运行在 `http://localhost:8000`。
 
-### 2. 客户端配置 (OpenClaw/Cursor)
+服务默认运行在 `http://127.0.0.1:8000`。
 
-将客户端指向 Sen-Gateway。对于 **AWS Bedrock**，API Key 字段请使用 `AccessKey:SecretKey:Region` 格式。
+打开 `http://127.0.0.1:8000/dashboard`，登录后在“模型路由”中配置厂商、模型和 API Key。
 
-### 3. 访问仪表盘
-访问：`http://localhost:8000/dashboard`
-- **默认用户**: `admin`
-- **默认密码**: `88888888`
-- **功能**: 查看交互日志、运行成本审计、修改系统配置（包括**语言切换**）。
+本地控制台默认账号：
+
+- 用户名：`admin`
+- 密码：`88888888`
+
+如果服务会被其他机器访问，请先修改默认密码：
+
+```bash
+python scripts/reset_password.py
+```
+
+## 调用网关
+
+Sen-Gateway 接受标准 OpenAI Chat Completions 请求。使用 `default` 会自动路由到控制台中选择的模型。
+
+### cURL
+
+```bash
+curl http://127.0.0.1:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "default",
+    "messages": [
+      {"role": "user", "content": "你好"}
+    ]
+  }'
+```
+
+### Python
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://127.0.0.1:8000/v1",
+    api_key="local-placeholder",
+)
+
+response = client.chat.completions.create(
+    model="default",
+    messages=[{"role": "user", "content": "你好"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+客户端 API Key 只是为了兼容 SDK 的占位值，真实的模型厂商凭据由 Sen-Gateway 保存在本地。
+
+## 推理强度
+
+控制台提供三个默认档位：
+
+| 档位 | DeepSeek V4 | 其他兼容推理模型 |
+|---|---|---|
+| 快速 | 关闭深度思考 | 低推理强度 |
+| 深入 | 开启思考，`high` | 中等推理强度 |
+| 极致 | 开启思考，`max` | 高推理强度 |
+
+DeepSeek 会把 `low` 和 `medium` 都映射成 `high`，因此 Sen-Gateway 使用思考模式开关，让“快速”档真正减少隐藏推理。如果请求显式传入 `reasoning_effort` 或 `thinking`，请求参数会覆盖控制台默认值。
+
+推理模型默认拥有更大的输出空间和上游超时时间，可以通过环境变量调整：
+
+```env
+REASONING_MIN_OUTPUT_TOKENS=4096
+LITELLM_UPSTREAM_TIMEOUT_SECONDS=60
+```
+
+## 厂商密钥管理
+
+- API Key 加密后保存在本地 SQLite 数据库中。
+- 每个模型厂商拥有独立的密钥记录。
+- 同一厂商切换模型时不需要重新输入密钥。
+- API Key 输入框留空会继续使用已保存的密钥。
+- 首次切换到尚未配置的厂商时，需要填写该厂商的密钥。
+- AWS Bedrock 当前在控制台密钥字段中使用 `AccessKey:SecretKey:Region` 格式。
+
+## Echo Retention V5
+
+历史消息压缩是可选功能。启用后，Sen-Gateway 会针对浏览器结构、终端日志、搜索结果、JSON 和超长文本，以不同规则精简较早的工具输出；近期消息和系统提示词仍会发送给上游模型。
+
+“上下文优化分析”会比较原始请求与实际上游内容。页面中的 Token 和成本属于诊断估算，适合相对比较；实际费用以模型厂商账单为准。
+
+## 安全说明
+
+- `.env`、`secret.key`、SQLite 数据库和运行日志均已排除在 Git 之外。
+- `secret.key` 只在本地生成，不能提交或分享。
+- 不要把真实厂商密钥写入源码、README 示例或会提交到 Git 的客户端配置。
+- 控制台应只开放在可信网络中，并及时修改默认管理员密码。
+- 如果本地加密密钥丢失，已经加密的厂商凭据无法恢复，需要重新填写。
+
+## 项目结构
+
+```text
+Sen-Gateway/
+├── app/                # FastAPI 路由、模型适配、控制台、上下文压缩
+├── scripts/            # 维护和诊断工具
+├── run.py              # 本地服务入口
+├── requirements.txt    # 完整依赖锁定
+└── README_ZH.md        # 中文文档
+```
 
 ---
 
-## 💰 成本审计 (Audit System)
-Dashboard 不仅仅是日志查看器，它还是你的 **Token 精算师**:
-1. 在侧边栏选择多轮对话日志。
-2. 点击 **🚀 Audit**。
-3. 系统将基于实际计费规则计算成本：
-   - **Token 统计**: 1 个中文字符 ≈ 2 tokens，4 个英文字符 ≈ 1 token。
-   - **隐式缓存**: 自动检测轮次间的公共前缀，并应用 **0.1x - 0.25x (Prompt Caching)** 折扣率。
-   - **效率分析**: 展示通过 Echo Retention 节省的实际费用。
-
----
-*Developed by 森哥 (Senge) | Tech Core: Echo Retention (V5)*
+由森哥（Senge）开发 · Echo Retention V5
