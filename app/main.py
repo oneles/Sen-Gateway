@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     os.environ['AWS_REGION_NAME'] = 'us-east-1'
     logger.info(f"AWS region set to: {os.environ.get('AWS_REGION_NAME')}")
     
-    app.state.pruner = SkillPruner(qmd_path="qmd_data.bin")
+    app.state.pruner = SkillPruner()
     
     # Load Proxy Config
     db = SessionLocal()
@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    app.state.pruner = SkillPruner(qmd_path="qmd_data.bin")
+    app.state.pruner = SkillPruner()
     app.state.brain = Brain(model_name=GEMINI_MODEL, api_key=API_KEY)
     yield
     # Shutdown
@@ -151,11 +151,22 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
         try:
             db_model_provider = db.query(Config).filter_by(key="model_provider").first()
             db_model_name = db.query(Config).filter_by(key="model_name").first()
-            db_api_key = db.query(Config).filter_by(key="model_api_key").first()
+            db_reasoning_mode = db.query(Config).filter_by(key="reasoning_mode").first()
+            db_api_key = None
             
             if db_model_provider and db_model_name and db_model_name.value:
                 provider = db_model_provider.value
                 model_name = db_model_name.value
+
+                scoped_api_key = db.query(Config).filter_by(key=f"provider_api_key_{provider}").first()
+                legacy_api_key = db.query(Config).filter_by(key="model_api_key").first()
+                legacy_owner = db.query(Config).filter_by(key="model_api_key_provider").first()
+                if scoped_api_key and scoped_api_key.value:
+                    db_api_key = scoped_api_key
+                elif legacy_api_key and legacy_api_key.value and (
+                    legacy_owner is None or legacy_owner.value == provider
+                ):
+                    db_api_key = legacy_api_key
                 
                 # Construct LiteLLM model string
                 if provider == "openai":
@@ -168,6 +179,8 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
                         model_override = f"gemini/{model_name}"
                     else:
                         model_override = model_name
+                elif provider == "deepseek":
+                    model_override = model_name if model_name.startswith("deepseek/") else f"deepseek/{model_name}"
                 elif provider == "bedrock":
                     model_override = model_name if model_name.startswith("bedrock/") else f"bedrock/{model_name}"
                 else:
@@ -194,6 +207,24 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
                 except Exception as e:
                     logger.error(f"Error handling API Key: {e}")
                     key_to_use = db_api_key.value
+
+            # Apply the gateway default only when the caller did not choose its
+            # own reasoning settings. DeepSeek V4 exposes meaningful fast/high/max
+            # behavior through its thinking toggle plus reasoning_effort.
+            if request.reasoning_effort is None and request.thinking is None:
+                reasoning_mode = db_reasoning_mode.value if db_reasoning_mode else "fast"
+                effective_model = (model_override or request.model).lower()
+                if "deepseek" in effective_model:
+                    if reasoning_mode == "fast":
+                        request.thinking = {"type": "disabled"}
+                    else:
+                        request.thinking = {"type": "enabled"}
+                        request.reasoning_effort = "max" if reasoning_mode == "max" else "high"
+                else:
+                    request.reasoning_effort = {
+                        "fast": "low", "deep": "medium", "max": "high"
+                    }.get(reasoning_mode, "low")
+                logger.info("Applied gateway reasoning mode: %s", reasoning_mode)
                 
         except Exception as e:
             logger.warning(f"Failed to load dynamic model config: {e}")
@@ -201,6 +232,8 @@ async def chat_completions(request: ChatCompletionRequest, raw_request: Request,
         # Update Final Payload to reflect REAL model being used
         if model_override:
             final_payload_dict["model"] = model_override
+        final_payload_dict["reasoning_effort"] = request.reasoning_effort
+        final_payload_dict["thinking"] = request.thinking
 
         # FORCE use of internal API Key (from .env or DB)
         # Ignore whatever OpenClaw sends (e.g. "sk-local", "any")

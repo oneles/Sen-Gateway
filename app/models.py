@@ -20,6 +20,8 @@ class ChatCompletionRequest(BaseModel):
     tools: Optional[List[Tool]] = None
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
     max_tokens: Optional[int] = None
+    reasoning_effort: Optional[str] = None
+    thinking: Optional[Dict[str, str]] = None
     temperature: Optional[float] = 1.0
     stream: Optional[bool] = False
     n: Optional[int] = 1

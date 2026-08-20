@@ -25,6 +25,26 @@ from typing import List, Dict, Any, Union, AsyncGenerator
 litellm.drop_params = True
 logger = logging.getLogger(__name__)
 
+LITELLM_UPSTREAM_TIMEOUT_SECONDS = float(
+    os.getenv("LITELLM_UPSTREAM_TIMEOUT_SECONDS", "60")
+)
+REASONING_MIN_OUTPUT_TOKENS = int(
+    os.getenv("REASONING_MIN_OUTPUT_TOKENS", "4096")
+)
+
+
+def _is_reasoning_model(model_name: str) -> bool:
+    """Models whose reported output budget includes hidden reasoning tokens."""
+    normalized = model_name.lower()
+    return any(marker in normalized for marker in (
+        "reasoner",
+        "deepseek-r1",
+        "deepseek-v4",
+        "o1",
+        "o3",
+        "o4-mini",
+    ))
+
 
 def _convert_messages_for_messages_api(messages: list) -> tuple:
     """
@@ -580,15 +600,31 @@ class Brain:
                         t_dict["function"]["parameters"] = _sanitize_json_schema(t_dict["function"]["parameters"])
                 tools.append(t_dict)
 
+        max_tokens = request.max_tokens
+        thinking_disabled = bool(
+            request.thinking and request.thinking.get("type") == "disabled"
+        )
+        if _is_reasoning_model(target_model) and not thinking_disabled:
+            if max_tokens is None or max_tokens < REASONING_MIN_OUTPUT_TOKENS:
+                logger.info(
+                    "Raising reasoning-model output budget from %s to %s tokens for %s",
+                    max_tokens,
+                    REASONING_MIN_OUTPUT_TOKENS,
+                    target_model,
+                )
+                max_tokens = REASONING_MIN_OUTPUT_TOKENS
+
         kwargs = {
             "model": target_model,
             "messages": messages,
             "tools": tools,
             "tool_choice": request.tool_choice if tools else None,
-            "max_tokens": request.max_tokens,
+            "max_tokens": max_tokens,
+            "reasoning_effort": request.reasoning_effort,
+            "thinking": request.thinking,
             "temperature": request.temperature,
             "stream": request.stream,
-            "timeout": 15
+            "timeout": LITELLM_UPSTREAM_TIMEOUT_SECONDS,
         }
 
         if effective_key:

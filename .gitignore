@@ -1,10 +1,13 @@
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
 venv/
 .env
+secret.key
 sen_gateway.db
 sen_gateway.log
+user_out.log
 *.bin
 .vscode/
 .idea/
